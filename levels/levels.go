@@ -1,22 +1,16 @@
 package levels
 
-type LevelInt int
-type LevelStr string
+type Level int
+
+func (l Level) String() string {
+	return [...]string{"fatal", "silent", "error", "info", "warn", "debug"}[l]
+}
 
 const (
-	LevelSilent LevelStr = "silent"
-	LevelFatal  LevelStr = "fatal"
-	LevelError  LevelStr = "error"
-	LevelWarn   LevelStr = "Warn"
-	LevelInfo   LevelStr = "info"
-	LevelDebug  LevelStr = "debug"
+	LevelFatal Level = iota
+	LevelSilent
+	LevelError
+	LevelInfo
+	LevelWarn
+	LevelDebug
 )
-
-var Levels = map[LevelStr]LevelInt{
-	LevelSilent: LevelInt(0),
-	LevelFatal:  LevelInt(1),
-	LevelError:  LevelInt(2),
-	LevelWarn:   LevelInt(3),
-	LevelInfo:   LevelInt(4),
-	LevelDebug:  LevelInt(5),
-}

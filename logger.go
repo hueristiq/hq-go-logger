@@ -1,34 +1,35 @@
-package hqgolog
+package logger
 
 import (
+	"fmt"
 	"os"
 	"strings"
 
-	"github.com/hueristiq/hqgolog/formatter"
-	"github.com/hueristiq/hqgolog/levels"
-	"github.com/hueristiq/hqgolog/writer"
+	"go.source.hueristiq.com/logger/formatter"
+	"go.source.hueristiq.com/logger/levels"
+	"go.source.hueristiq.com/logger/writer"
 )
 
-type Logger struct { //nolint:govet // To be refactored.
-	formatter formatter.Formatter
-	maxLevel  levels.LevelInt
-	writer    writer.Writer
+type Logger struct {
+	formatter   formatter.Formatter
+	writer      writer.Writer
+	maxLogLevel levels.Level
 }
 
-func (logger *Logger) SetFormatter(f formatter.Formatter) {
-	logger.formatter = f
+func (l *Logger) SetFormatter(f formatter.Formatter) {
+	l.formatter = f
 }
 
-func (logger *Logger) SetMaxLevel(level levels.LevelStr) {
-	logger.maxLevel = levels.Levels[level]
+func (l *Logger) SetWriter(w writer.Writer) {
+	l.writer = w
 }
 
-func (logger *Logger) SetWriter(w writer.Writer) {
-	logger.writer = w
+func (l *Logger) SetMaxLogLevel(level levels.Level) {
+	l.maxLogLevel = level
 }
 
-func (logger *Logger) Log(event *Event) {
-	if event.level > logger.maxLevel {
+func (l *Logger) Log(event *Event) {
+	if event.level > l.maxLogLevel {
 		return
 	}
 
@@ -38,12 +39,12 @@ func (logger *Logger) Log(event *Event) {
 	)
 
 	if _, ok = event.metadata["label"]; !ok {
-		labels := map[levels.LevelInt]string{
-			levels.Levels[levels.LevelFatal]: "FTL",
-			levels.Levels[levels.LevelError]: "ERR",
-			levels.Levels[levels.LevelWarn]:  "WRN",
-			levels.Levels[levels.LevelInfo]:  "INF",
-			levels.Levels[levels.LevelDebug]: "DBG",
+		labels := map[levels.Level]string{
+			levels.LevelFatal: "FTL",
+			levels.LevelError: "ERR",
+			levels.LevelInfo:  "INF",
+			levels.LevelWarn:  "WRN",
+			levels.LevelDebug: "DBG",
 		}
 
 		if label, ok = labels[event.level]; ok {
@@ -53,7 +54,7 @@ func (logger *Logger) Log(event *Event) {
 
 	event.message = strings.TrimSuffix(event.message, "\n")
 
-	data, err := logger.formatter.Format(&formatter.Log{
+	data, err := l.formatter.Format(&formatter.Log{
 		Message:  event.message,
 		Level:    event.level,
 		Metadata: event.metadata,
@@ -62,83 +63,166 @@ func (logger *Logger) Log(event *Event) {
 		return
 	}
 
-	if character, ok := event.metadata["rest"]; ok {
-		data = appendRest(data, character)
-	}
+	l.writer.Write(data, event.level)
 
-	logger.writer.Write(data, event.level)
-
-	if event.level == levels.Levels[levels.LevelFatal] {
+	if event.level == levels.LevelFatal {
 		os.Exit(1)
 	}
 }
 
-func (logger *Logger) Print() *Event {
-	event := &Event{
-		logger:   logger,
-		level:    levels.LevelInt(-1),
+func (l *Logger) Fatal() (event *Event) {
+	event = &Event{
+		logger:   l,
+		level:    levels.LevelFatal,
 		metadata: make(map[string]string),
 	}
 
-	return event
+	return
 }
 
-func (logger *Logger) Debug() *Event {
-	level := levels.Levels[levels.LevelDebug]
-
-	event := &Event{
-		logger:   logger,
-		level:    level,
+func (l *Logger) Print() (event *Event) {
+	event = &Event{
+		logger:   l,
+		level:    levels.LevelSilent,
 		metadata: make(map[string]string),
 	}
 
-	return event
+	return
 }
 
-func (logger *Logger) Info() *Event {
-	level := levels.Levels[levels.LevelInfo]
-
-	event := &Event{
-		logger:   logger,
-		level:    level,
+func (l *Logger) Error() (event *Event) {
+	event = &Event{
+		logger:   l,
+		level:    levels.LevelError,
 		metadata: make(map[string]string),
 	}
 
-	return event
+	return
 }
 
-func (logger *Logger) Warn() *Event {
-	level := levels.Levels[levels.LevelWarn]
-
-	event := &Event{
-		logger:   logger,
-		level:    level,
+func (l *Logger) Info() (event *Event) {
+	event = &Event{
+		logger:   l,
+		level:    levels.LevelInfo,
 		metadata: make(map[string]string),
 	}
 
-	return event
+	return
 }
 
-func (logger *Logger) Error() *Event {
-	level := levels.Levels[levels.LevelError]
-
-	event := &Event{
-		logger:   logger,
-		level:    level,
+func (l *Logger) Warn() (event *Event) {
+	event = &Event{
+		logger:   l,
+		level:    levels.LevelWarn,
 		metadata: make(map[string]string),
 	}
 
-	return event
+	return
 }
 
-func (logger *Logger) Fatal() *Event {
-	level := levels.Levels[levels.LevelFatal]
-
-	event := &Event{
-		logger:   logger,
-		level:    level,
+func (l *Logger) Debug() (event *Event) {
+	event = &Event{
+		logger:   l,
+		level:    levels.LevelDebug,
 		metadata: make(map[string]string),
 	}
 
-	return event
+	return
+}
+
+type Event struct {
+	logger   *Logger
+	level    levels.Level
+	message  string
+	metadata map[string]string
+}
+
+func (e *Event) Label(label string) (event *Event) {
+	e.metadata["label"] = label
+
+	return e
+}
+
+func (e *Event) Msg(message string) {
+	e.message = message
+
+	e.logger.Log(e)
+}
+
+func (e *Event) Msgf(format string, args ...interface{}) {
+	e.message = fmt.Sprintf(format, args...)
+
+	e.logger.Log(e)
+}
+
+var DefaultLogger *Logger
+
+func init() {
+	DefaultLogger = &Logger{}
+
+	DefaultLogger.SetFormatter(formatter.NewConsoleFormatter(&formatter.ConsoleFormatterConfiguration{
+		Colorize: true,
+	}))
+	DefaultLogger.SetWriter(writer.NewConsoleWriter())
+	DefaultLogger.SetMaxLogLevel(levels.LevelDebug)
+}
+
+func Fatal() (event *Event) {
+	event = &Event{
+		logger:   DefaultLogger,
+		level:    levels.LevelFatal,
+		metadata: make(map[string]string),
+	}
+
+	return
+}
+
+func Print() (event *Event) {
+	event = &Event{
+		logger:   DefaultLogger,
+		level:    levels.LevelSilent,
+		metadata: make(map[string]string),
+	}
+
+	return
+}
+
+func Error() (event *Event) {
+	event = &Event{
+		logger:   DefaultLogger,
+		level:    levels.LevelError,
+		metadata: make(map[string]string),
+	}
+
+	return
+}
+
+func Info() (event *Event) {
+	event = &Event{
+		logger:   DefaultLogger,
+		level:    levels.LevelInfo,
+		metadata: make(map[string]string),
+	}
+
+	return
+}
+
+func Warn() (event *Event) {
+	event = &Event{
+		logger:   DefaultLogger,
+		level:    levels.LevelWarn,
+		metadata: make(map[string]string),
+	}
+
+	return
+}
+
+func Debug() (event *Event) {
+	event = &Event{
+		logger:   DefaultLogger,
+		level:    levels.LevelDebug,
+		metadata: make(map[string]string),
+	}
+
+	return
 }

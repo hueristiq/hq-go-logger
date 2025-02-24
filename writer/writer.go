@@ -1,7 +1,7 @@
 package writer
 
-import "github.com/hueristiq/hqgolog/levels"
+import "go.source.hueristiq.com/logger/levels"
 
 type Writer interface {
-	Write(data []byte, level levels.LevelInt)
+	Write(data []byte, level levels.Level)
 }

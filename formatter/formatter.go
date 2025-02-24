@@ -1,13 +1,13 @@
 package formatter
 
-import "github.com/hueristiq/hqgolog/levels"
+import "go.source.hueristiq.com/logger/levels"
 
-type Log struct { //nolint:govet // To be refactored.
+type Log struct {
 	Message  string
-	Level    levels.LevelInt
+	Level    levels.Level
 	Metadata map[string]string
 }
 
 type Formatter interface {
-	Format(log *Log) ([]byte, error)
+	Format(log *Log) (data []byte, err error)
 }

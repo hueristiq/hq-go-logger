@@ -1,10 +1,5 @@
-module github.com/hueristiq/hqgolog
+module go.source.hueristiq.com/logger
 
-go 1.20
+go 1.23.3
 
-require (
-	github.com/logrusorgru/aurora/v3 v3.0.0
-	golang.org/x/term v0.9.0
-)
-
-require golang.org/x/sys v0.9.0 // indirect
+require github.com/logrusorgru/aurora/v4 v4.0.0
