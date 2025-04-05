@@ -1,6 +1,6 @@
 package formatter
 
-import "go.source.hueristiq.com/logger/levels"
+import "github.com/hueristiq/hq-go-logger/levels"
 
 // Log represents a structured log message.
 // It encapsulates the core message, its severity level, and any additional metadata that provides context.

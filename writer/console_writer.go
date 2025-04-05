@@ -4,7 +4,7 @@ import (
 	"os"
 	"sync"
 
-	"go.source.hueristiq.com/logger/levels"
+	"github.com/hueristiq/hq-go-logger/levels"
 )
 
 // Console is an implementation of a log Writer that outputs log messages to the console.

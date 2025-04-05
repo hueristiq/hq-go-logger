@@ -1,4 +1,4 @@
-module go.source.hueristiq.com/logger
+module github.com/hueristiq/hq-go-logger
 
 go 1.23.3
 
