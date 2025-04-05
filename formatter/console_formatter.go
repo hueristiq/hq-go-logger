@@ -3,8 +3,8 @@ package formatter
 import (
 	"bytes"
 
+	"github.com/hueristiq/hq-go-logger/levels"
 	"github.com/logrusorgru/aurora/v4"
-	"go.source.hueristiq.com/logger/levels"
 )
 
 // Console implements the Formatter interface for formatting logs intended for console output.

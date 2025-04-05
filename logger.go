@@ -5,9 +5,9 @@ import (
 	"os"
 	"strings"
 
-	"go.source.hueristiq.com/logger/formatter"
-	"go.source.hueristiq.com/logger/levels"
-	"go.source.hueristiq.com/logger/writer"
+	"github.com/hueristiq/hq-go-logger/formatter"
+	"github.com/hueristiq/hq-go-logger/levels"
+	"github.com/hueristiq/hq-go-logger/writer"
 )
 
 type Logger struct {

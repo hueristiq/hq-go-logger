@@ -1,6 +1,6 @@
 package writer
 
-import "go.source.hueristiq.com/logger/levels"
+import "github.com/hueristiq/hq-go-logger/levels"
 
 // Writer is an abstraction for writing log data.
 // It allows log messages to be sent to different output targets, such as the console,

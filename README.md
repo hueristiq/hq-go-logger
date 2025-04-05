@@ -26,7 +26,7 @@
 To install `hq-go-logger`, run:
 
 ```bash
-go get -v -u go.source.hueristiq.com/logger
+go get -v -u github.com/hueristiq/hq-go-logger
 ```
 
 Make sure your Go environment is set up properly (Go 1.x or later is recommended).
@@ -39,23 +39,23 @@ Below are examples demonstrating how to use the different features of the `hq-go
 package main
 
 import (
-	"go.source.hueristiq.com/logger"
-	"go.source.hueristiq.com/logger/formatter"
-	"go.source.hueristiq.com/logger/levels"
+	hqgologger "github.com/hueristiq/hq-go-logger"
+	"github.com/hueristiq/hq-go-logger/formatter"
+	"github.com/hueristiq/hq-go-logger/levels"
 )
 
 func main() {
-	logger.DefaultLogger.SetMaxLevel(levels.LevelDebug)
-	logger.DefaultLogger.SetFormatter(formatter.NewCLI(&formatter.CLIOptions{
+	hqgologger.DefaultLogger.SetMaxLevel(levels.LevelDebug)
+	hqgologger.DefaultLogger.SetFormatter(formatter.NewCLI(&formatter.CLIOptions{
 		Colorize: true,
 	}))
 
 
-	logger.Print().Msg("Print message")
-	logger.Info().Msg("Info message")
-	logger.Warn().Msg("Warn message")
-	logger.Error().Msg("Error message")
-	logger.Fatal().Msg("Fatal message")
+	hqgologger.Print().Msg("Print message")
+	hqgologger.Info().Msg("Info message")
+	hqgologger.Warn().Msg("Warn message")
+	hqgologger.Error().Msg("Error message")
+	hqgologger.Fatal().Msg("Fatal message")
 }
 ```
 
