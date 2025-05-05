@@ -7,9 +7,15 @@ import (
 	"github.com/hueristiq/hq-go-logger/levels"
 )
 
-// Console is an implementation of a log Writer that outputs log messages to the console.
-// It routes log messages to standard output (stdout) or standard error (stderr) depending on
-// the log level, ensuring thread-safe writes using a mutex.
+// Console is a Writer implementation that sends log entries to the console (stdout or stderr).
+//
+// It uses an internal mutex to serialize writes from multiple goroutines, preventing
+// interleaved output. Messages at LevelSilent are written to stdout; all other levels
+// are written to stderr. Each call to Write appends a newline after the data.
+//
+// Fields:
+//
+// - mutex (*sync.Mutex) - Protects writes to the console to ensure atomicity.
 type Console struct {
 	mutex *sync.Mutex
 }
@@ -25,13 +31,12 @@ type Console struct {
 //
 // Parameters:
 //
-//	data ([]byte): A byte slice containing the formatted log message.
-//	level (levels.Level): The severity level of the log message, used to determine the output destination.
+// - data ([]byte): A byte slice containing the formatted log message.
+// - level (levels.Level): The severity level of the log message, used to determine the output destination.
 func (c *Console) Write(data []byte, level levels.Level) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	//nolint: exhaustive
 	switch level {
 	case levels.LevelSilent:
 		os.Stdout.Write(data)
@@ -49,7 +54,7 @@ var _ Writer = (*Console)(nil)
 //
 // Returns:
 //
-//	writer (*Console): A pointer to a Console writer, ready for use in writing log messages.
+// - writer (*Console): A pointer to a Console writer, ready for use in writing log messages.
 func NewConsoleWriter() (writer *Console) {
 	writer = &Console{
 		mutex: &sync.Mutex{},

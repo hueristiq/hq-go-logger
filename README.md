@@ -45,11 +45,10 @@ import (
 )
 
 func main() {
-	hqgologger.DefaultLogger.SetMaxLevel(levels.LevelDebug)
 	hqgologger.DefaultLogger.SetFormatter(formatter.NewCLI(&formatter.CLIOptions{
 		Colorize: true,
 	}))
-
+	hqgologger.DefaultLogger.SetLevel(levels.LevelDebug)
 
 	hqgologger.Print().Msg("Print message")
 	hqgologger.Info().Msg("Info message")
