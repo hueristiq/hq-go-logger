@@ -23,7 +23,7 @@ import (
 type _Event struct {
 	level    levels.Level
 	message  string
-	metadata map[string]string
+	metadata map[string]interface{}
 }
 
 // WithLevel sets the severity level of the log event.
@@ -252,7 +252,7 @@ type Option func(*_Event)
 //   - event (*_Event): A pointer to the configured log event.
 func _NewEvent(options ...Option) (event *_Event) {
 	event = &_Event{
-		metadata: make(map[string]string),
+		metadata: make(map[string]interface{}),
 	}
 
 	for _, option := range options {

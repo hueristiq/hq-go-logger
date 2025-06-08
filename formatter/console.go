@@ -2,6 +2,7 @@ package formatter
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/hueristiq/hq-go-logger/levels"
 	"github.com/logrusorgru/aurora/v4"
@@ -52,7 +53,9 @@ func (c *Console) Format(log *Log) (data []byte, err error) {
 
 	if label, ok := log.Metadata["label"]; ok && label != "" {
 		buffer.WriteByte('[')
-		buffer.WriteString(label)
+
+		fmt.Fprintf(buffer, "%v", label)
+
 		buffer.WriteByte(']')
 		buffer.WriteByte(' ')
 
@@ -65,7 +68,8 @@ func (c *Console) Format(log *Log) (data []byte, err error) {
 		buffer.WriteByte(' ')
 		buffer.WriteString(k)
 		buffer.WriteByte('=')
-		buffer.WriteString(v)
+
+		fmt.Fprintf(buffer, "%v", v)
 	}
 
 	data = buffer.Bytes()

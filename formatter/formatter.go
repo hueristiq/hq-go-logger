@@ -17,7 +17,7 @@ import "github.com/hueristiq/hq-go-logger/levels"
 type Log struct {
 	Level    levels.Level
 	Message  string
-	Metadata map[string]string
+	Metadata map[string]interface{}
 }
 
 // Formatter defines the interface for formatting log messages. Implementations
