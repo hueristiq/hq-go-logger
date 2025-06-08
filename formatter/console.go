@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
+	hqgoerrors "github.com/hueristiq/hq-go-errors"
 	"github.com/hueristiq/hq-go-logger/levels"
 	"github.com/logrusorgru/aurora/v4"
 )
@@ -17,11 +18,6 @@ import (
 //
 // Fields:
 //   - au (*aurora.Aurora): The aurora instance used for colorizing labels.
-//
-// The formatter is thread-safe, as it maintains no shared state between Format calls.
-// It handles nil or empty Metadata maps safely and validates log levels to prevent
-// undefined behavior. The levels package's severity order (lower values = higher
-// severity) is used for colorization.
 type Console struct {
 	au *aurora.Aurora
 }
@@ -40,10 +36,6 @@ type Console struct {
 // Returns:
 //   - data ([]byte): The formatted log message as a byte slice.
 //   - err (error): An error if the log level is invalid, otherwise nil.
-//
-// The method is thread-safe and handles nil or empty Metadata maps safely. It
-// validates the log level to ensure it is within the valid range [LevelFatal,
-// LevelDebug]. If the level is invalid, it returns an error.
 func (c *Console) Format(log *Log) (data []byte, err error) {
 	c.colorize(log)
 
@@ -64,6 +56,25 @@ func (c *Console) Format(log *Log) (data []byte, err error) {
 
 	buffer.WriteString(log.Message)
 
+	var formattedErrorMetadata string
+
+	if err2, ok := log.Metadata["error"]; ok && err2 != nil {
+		var err3 error
+
+		err3, ok = err2.(error)
+		if ok {
+			var e hqgoerrors.Error
+
+			if hqgoerrors.As(err3, &e) {
+				formattedErrorMetadata = "\n\n" + hqgoerrors.ToString(err3, true)
+			}
+		} else {
+			formattedErrorMetadata = "\n\n" + err3.Error()
+		}
+
+		delete(log.Metadata, "error")
+	}
+
 	for k, v := range log.Metadata {
 		buffer.WriteByte(' ')
 		buffer.WriteString(k)
@@ -71,6 +82,8 @@ func (c *Console) Format(log *Log) (data []byte, err error) {
 
 		fmt.Fprintf(buffer, "%v", v)
 	}
+
+	buffer.WriteString(formattedErrorMetadata)
 
 	data = buffer.Bytes()
 

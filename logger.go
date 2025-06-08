@@ -60,6 +60,16 @@ func (e *_Event) WithLabel(label string) {
 	e.WithString("label", label)
 }
 
+// WithError adds an error to the log event's metadata under the "error" key. The
+// error value is stored as-is, and formatters are responsible for converting it to
+// a string or other format as needed.
+//
+// Parameters:
+//   - err (error): The error to set in the metadata.
+func (e *_Event) WithError(err error) {
+	e.metadata["error"] = err
+}
+
 // Logger is the main component of the logging system, responsible for filtering,
 // formatting, and writing log messages. It uses a configured severity threshold to
 // filter messages, a formatter to convert events to byte slices, and a writer to
@@ -312,6 +322,21 @@ func WithString(key, value string) (option Option) {
 func WithLabel(label string) (option Option) {
 	return func(event *_Event) {
 		event.WithLabel(label)
+	}
+}
+
+// WithError returns an Option that adds an error to a log event's metadata under
+// the "error" key. The error is stored as-is, and formatters are responsible for
+// converting it to a string or other format as needed.
+//
+// Parameters:
+//   - err (error): The error to set in the metadata.
+//
+// Returns:
+//   - option (Option): A function to configure the event's error metadata.
+func WithError(err error) (option Option) {
+	return func(event *_Event) {
+		event.WithError(err)
 	}
 }
 
