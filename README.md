@@ -9,7 +9,7 @@
 - [Features](#features)
 - [Installation](#installation)
 - [Usage](#usage)
-	- [Basic Usage with DefaultLogger](#basic-usage-with-defaultlogger)
+	- [Basic Usage with `DefaultLogger`](#basic-usage-with-defaultlogger)
 	- [Custom Logger Configuration](#custom-logger-configuration)
 - [Contributing](#contributing)
 - [Licensing](#licensing)
@@ -37,7 +37,7 @@ Make sure your Go environment is set up properly (Go 1.18 or later is recommende
 
 Below are examples demonstrating how to use the different features of the `hq-go-logger` package.
 
-### Basic Usage with DefaultLogger
+### Basic Usage with `DefaultLogger`
 
 ```go
 package main
