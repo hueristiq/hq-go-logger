@@ -2,38 +2,42 @@
 
 ![made with go](https://img.shields.io/badge/made%20with-Go-1E90FF.svg) [![go report card](https://goreportcard.com/badge/github.com/hueristiq/hq-go-logger)](https://goreportcard.com/report/github.com/hueristiq/hq-go-logger) [![license](https://img.shields.io/badge/license-MIT-gray.svg?color=1E90FF)](https://github.com/hueristiq/hq-go-logger/blob/master/LICENSE) ![maintenance](https://img.shields.io/badge/maintained%3F-yes-1E90FF.svg) [![open issues](https://img.shields.io/github/issues-raw/hueristiq/hq-go-logger.svg?style=flat&color=1E90FF)](https://github.com/hueristiq/hq-go-logger/issues?q=is:issue+is:open) [![closed issues](https://img.shields.io/github/issues-closed-raw/hueristiq/hq-go-logger.svg?style=flat&color=1E90FF)](https://github.com/hueristiq/hq-go-logger/issues?q=is:issue+is:closed) [![contribution](https://img.shields.io/badge/contributions-welcome-1E90FF.svg)](https://github.com/hueristiq/hq-go-logger/blob/master/CONTRIBUTING.md)
 
-`hq-go-logger` is a [Go (Golang)](https://golang.org/) package for structured logging. It provides a flexible API for logging messages with varying severity levels, custom formatting, and output destinations.
+`hq-go-logger` is a [Go (Golang)](https://golang.org/) package for structured logging.
 
 ## Resources
 
 - [Features](#features)
 - [Installation](#installation)
 - [Usage](#usage)
+	- [Basic Usage with DefaultLogger](#basic-usage-with-defaultlogger)
+	- [Custom Logger Configuration](#custom-logger-configuration)
 - [Contributing](#contributing)
 - [Licensing](#licensing)
 
 ## Features
 
-- **Structured Logging:** Log messages with associated metadata for richer context.
-- **Multiple Log Levels:** Built-in support for levels such as Fatal, Error, Info, Warn, Debug, and Silent.
-- **Custom Formatters:** Easily swap out or extend log message formatting to suit your needs (e.g., colorized console output).
-- **Flexible Writers:** Route log output to various destinations like the console, files, or external logging services.
-- **Thread-Safe:** Designed with concurrency in mind for safe use in multi-goroutine applications.
-- **Extensible API:** Provides clear interfaces (Formatter, Writer) that allow you to extend functionality or integrate with existing systems.
+- **Structured Logging:** Attach metadata (key-value pairs) to log messages for enhanced context, such as request IDs or system metrics.
+- **Multiple Log Levels:** Supports six levels (`Fatal`, `Silent`, `Error`, `Info`, `Warn`, `Debug`) for categorizing message severity.
+- **Custom Formatters:** Swap or extend formatters to produce output in various formats (e.g., colorized console output, JSON, Logfmt).
+- **Flexible Writers:** Route logs to multiple destinations, such as console, files, or external logging services.
+- **Thread-Safe:** Ensures safe concurrent logging with thread-safe formatter and writer implementations.
+- **Extensible API:** Provides clear interfaces (`Formatter`, `Writer`) for custom implementations and integration with existing systems.
 
 ## Installation
 
-To install `hq-go-logger`, run:
+To install `hq-go-logger`, run the following command in your Go project:
 
 ```bash
 go get -v -u github.com/hueristiq/hq-go-logger
 ```
 
-Make sure your Go environment is set up properly (Go 1.x or later is recommended).
+Make sure your Go environment is set up properly (Go 1.18 or later is recommended).
 
 ## Usage
 
 Below are examples demonstrating how to use the different features of the `hq-go-logger` package.
+
+### Basic Usage with DefaultLogger
 
 ```go
 package main
@@ -45,16 +49,45 @@ import (
 )
 
 func main() {
-	hqgologger.DefaultLogger.SetFormatter(formatter.NewCLI(&formatter.CLIOptions{
+	hqgologger.DefaultLogger.SetLevel(levels.LevelDebug)
+	hqgologger.DefaultLogger.SetFormatter(formatter.NewConsoleFormatter(&formatter.ConsoleFormatterConfiguration{
 		Colorize: true,
 	}))
-	hqgologger.DefaultLogger.SetLevel(levels.LevelDebug)
 
-	hqgologger.Print().Msg("Print message")
-	hqgologger.Info().Msg("Info message")
-	hqgologger.Warn().Msg("Warn message")
-	hqgologger.Error().Msg("Error message")
-	hqgologger.Fatal().Msg("Fatal message")
+	hqgologger.Print("Print message", hqgologger.WithLabel("PRINT"), hqgologger.WithString("app", "default"))
+	hqgologger.Info("Info message", hqgologger.WithLabel("INFO"), hqgologger.WithString("app", "default"))
+	hqgologger.Warn("Warn message", hqgologger.WithLabel("WARN"), hqgologger.WithString("app", "default"))
+	hqgologger.Error("Error message", hqgologger.WithLabel("ERROR"), hqgologger.WithString("app", "default"))
+	hqgologger.Fatal("Fatal message", hqgologger.WithLabel("FATAL"), hqgologger.WithString("app", "default"))
+}
+```
+
+### Custom Logger Configuration
+
+```go
+package main
+
+import (
+	hqgologger "github.com/hueristiq/hq-go-logger"
+	"github.com/hueristiq/hq-go-logger/formatter"
+	"github.com/hueristiq/hq-go-logger/levels"
+	"github.com/hueristiq/hq-go-logger/writer"
+)
+
+func main() {
+	logger := hqgologger.NewLogger()
+
+	logger.SetLevel(levels.LevelDebug)
+	logger.SetFormatter(formatter.NewConsoleFormatter(&formatter.ConsoleFormatterConfiguration{
+		Colorize: true,
+	}))
+	logger.SetWriter(writer.NewConsoleWriter())
+
+	logger.Print("Print message", hqgologger.WithLabel("PRINT"), hqgologger.WithString("app", "new"))
+	logger.Info("Info message", hqgologger.WithLabel("INFO"), hqgologger.WithString("app", "new"))
+	logger.Warn("Warn message", hqgologger.WithLabel("WARN"), hqgologger.WithString("app", "new"))
+	logger.Error("Error message", hqgologger.WithLabel("ERROR"), hqgologger.WithString("app", "new"))
+	logger.Fatal("Fatal message", hqgologger.WithLabel("FATAL"), hqgologger.WithString("app", "new"))
 }
 ```
 

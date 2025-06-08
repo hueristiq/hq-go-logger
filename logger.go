@@ -1,7 +1,6 @@
 package logger
 
 import (
-	"fmt"
 	"os"
 	"strings"
 
@@ -10,55 +9,191 @@ import (
 	"github.com/hueristiq/hq-go-logger/writer"
 )
 
+// _Event represents a log event with a severity level, message, and optional metadata.
+// It is used internally by the Logger to construct log messages before formatting and
+// writing. The event is built using the options pattern, allowing flexible configuration
+// of its fields via Option functions.
+//
+// Fields:
+//   - level (levels.Level): The severity level of the log message, as defined in the
+//     levels package (e.g., LevelInfo, LevelFatal).
+//   - message (string): The primary content of the log message.
+//   - metadata (map[string]string): Optional key-value pairs for additional context,
+//     such as labels or system metrics. The "label" key is used for formatted output.
+type _Event struct {
+	level    levels.Level
+	message  string
+	metadata map[string]string
+}
+
+// WithLevel sets the severity level of the log event.
+//
+// Parameters:
+//   - level (levels.Level): The severity level to set, from the levels package.
+func (e *_Event) WithLevel(level levels.Level) {
+	e.level = level
+}
+
+// WithMessage sets the message content of the log event.
+//
+// Parameters:
+//   - message (string): The log message to set.
+func (e *_Event) WithMessage(message string) {
+	e.message = message
+}
+
+// WithString adds a key-value pair to the log event's metadata.
+//
+// Parameters:
+//   - key (string): The metadata key.
+//   - value (string): The metadata value.
+func (e *_Event) WithString(key, value string) {
+	e.metadata[key] = value
+}
+
+// WithLabel sets the "label" metadata field for the log event, used by formatters
+// to identify the log level in output (e.g., "[INFO]").
+//
+// Parameters:
+//   - label (string): The label to set in the metadata.
+func (e *_Event) WithLabel(label string) {
+	e.WithString("label", label)
+}
+
+// Logger is the main component of the logging system, responsible for filtering,
+// formatting, and writing log messages. It uses a configured severity threshold to
+// filter messages, a formatter to convert events to byte slices, and a writer to
+// output the formatted data. The Logger provides level-specific methods (e.g., Info,
+// Fatal) for convenient logging and supports metadata via the options pattern.
+//
+// Fields:
+//   - level (levels.Level): The minimum severity level for logging (inclusive).
+//     Messages with a higher level value (less severe) are ignored.
+//   - formatter (formatter.Formatter): The formatter to convert log events to byte
+//     slices.
+//   - writer (writer.Writer): The writer to output formatted log data.
 type Logger struct {
-	formatter formatter.Formatter
 	level     levels.Level
+	formatter formatter.Formatter
 	writer    writer.Writer
 }
 
-// SetFormatter updates the Formatter used by the Logger.
+// SetLevel sets the minimum severity level for logging. Messages with a level
+// greater than the specified level (less severe) are ignored. The levels package
+// uses lower values for higher severity (e.g., LevelFatal = 0, LevelDebug = 5).
 //
 // Parameters:
-//
-//   - f (formatter.Formatter): The formatting strategy (e.g., console, JSON).
-func (l *Logger) SetFormatter(f formatter.Formatter) {
-	l.formatter = f
-}
-
-// SetLevel sets the logging threshold. Events with a level greater than this are no-ops.
-//
-// Parameters:
-//
-//   - level (levels.Level): Maximum level to emit (lower numeric means higher severity).
+//   - level (levels.Level): The minimum severity level to log.
 func (l *Logger) SetLevel(level levels.Level) {
 	l.level = level
 }
 
-// SetWriter specifies where formatted log entries are written.
+// SetFormatter sets the formatter used to convert log events to byte slices.
 //
 // Parameters:
+//   - f (formatter.Formatter): The formatter to use for log events.
+func (l *Logger) SetFormatter(f formatter.Formatter) {
+	l.formatter = f
+}
+
+// SetWriter sets the writer used to output formatted log data.
 //
-//   - w (writer.Writer): The output target (e.g., console writer, file writer).
+// Parameters:
+//   - w (writer.Writer): The writer to use for log output.
 func (l *Logger) SetWriter(w writer.Writer) {
 	l.writer = w
 }
 
-// Log processes a completed Event: it filters by level, applies default labels,
-// trims trailing newlines, formats via Formatter, writes via Writer, and on Fatal,
-// exits the program.
-//
-// Steps:
-// 1. Suppress if event.level > Logger.level.
-// 2. If no "label" metadata, assign default codes (FTL, ERR, INF, WRN, DBG).
-// 3. Trim any trailing '\n' from message.
-// 4. Format the event: produce []byte or abort on error.
-// 5. Write the data and level via Writer.
-// 6. If level == LevelFatal, call os.Exit(1).
+// Fatal logs a message at LevelFatal, applying the provided options (e.g., metadata).
+// The message is formatted and written if the logger's threshold allows, and the
+// program exits with status code 1 afterward. The levels package defines LevelFatal
+// as the most severe level (value 0), so it is always logged unless the formatter or
+// writer is nil.
 //
 // Parameters:
+//   - message (string): The log message.
+//   - options (...Option): Optional configurations for the log event (e.g., metadata).
+func (l *Logger) Fatal(message string, options ...Option) {
+	options = append(options, _WithLevel(levels.LevelFatal), _WithMessage(message))
+
+	l.Log(_NewEvent(options...))
+}
+
+// Print logs a message at LevelSilent, applying the provided options. The message
+// is formatted and written if the logger's threshold allows. LevelSilent (value 1)
+// is typically used for non-critical output and may be directed to stdout by writers.
 //
-//   - event (*Event): The fully-built event to log.
-func (l *Logger) Log(event *Event) {
+// Parameters:
+//   - message (string): The log message.
+//   - options (...Option): Optional configurations for the log event.
+func (l *Logger) Print(message string, options ...Option) {
+	options = append(options, _WithLevel(levels.LevelSilent), _WithMessage(message))
+
+	l.Log(_NewEvent(options...))
+}
+
+// Error logs a message at LevelError, applying the provided options. The message
+// is formatted and written if the logger's threshold allows (level <= LevelError).
+// LevelError (value 2) indicates errors requiring attention but not program termination.
+//
+// Parameters:
+//   - message (string): The log message.
+//   - options (...Option): Optional configurations for the log event.
+func (l *Logger) Error(message string, options ...Option) {
+	options = append(options, _WithLevel(levels.LevelError), _WithMessage(message))
+
+	l.Log(_NewEvent(options...))
+}
+
+// Info logs a message at LevelInfo, applying the provided options. The message
+// is formatted and written if the logger's threshold allows (level <= LevelInfo).
+// LevelInfo (value 3) is used for informational messages about normal operation.
+//
+// Parameters:
+//   - message (string): The log message.
+//   - options (...Option): Optional configurations for the log event.
+func (l *Logger) Info(message string, options ...Option) {
+	options = append(options, _WithLevel(levels.LevelInfo), _WithMessage(message))
+
+	l.Log(_NewEvent(options...))
+}
+
+// Warn logs a message at LevelWarn, applying the provided options. The message
+// is formatted and written if the logger's threshold allows (level <= LevelWarn).
+// LevelWarn (value 4) indicates potential issues that do not halt execution.
+//
+// Parameters:
+//   - message (string): The log message.
+//   - options (...Option): Optional configurations for the log event.
+func (l *Logger) Warn(message string, options ...Option) {
+	options = append(options, _WithLevel(levels.LevelWarn), _WithMessage(message))
+
+	l.Log(_NewEvent(options...))
+}
+
+// Debug logs a message at LevelDebug, applying the provided options. The message
+// is formatted and written if the logger's threshold allows (level <= LevelDebug).
+// LevelDebug (value 5) is used for detailed debugging information.
+//
+// Parameters:
+//   - message (string): The log message.
+//   - options (...Option): Optional configurations for the log event.
+func (l *Logger) Debug(message string, options ...Option) {
+	options = append(options, _WithLevel(levels.LevelDebug), _WithMessage(message))
+
+	l.Log(_NewEvent(options...))
+}
+
+// Log processes a log event by filtering, formatting, and writing it. The event is
+// ignored if its level is greater than the logger's threshold (less severe). If no
+// label is provided in the event's metadata, a default label is added (e.g., "INF"
+// for LevelInfo). The message is trimmed of trailing newlines before formatting.
+// If the formatter or writer is nil, or if formatting fails, the event is silently
+// ignored. For LevelFatal events, the program exits with status code 1 after writing.
+//
+// Parameters:
+//   - event (*_Event): The log event to process, containing level, message, and metadata.
+func (l *Logger) Log(event *_Event) {
 	if event.level > l.level {
 		return
 	}
@@ -100,191 +235,94 @@ func (l *Logger) Log(event *Event) {
 	}
 }
 
-func (l *Logger) Fatal() (event *Event) {
-	event = &Event{
-		logger:   l,
-		level:    levels.LevelFatal,
-		metadata: make(map[string]string),
-	}
-
-	return
-}
-
-func (l *Logger) Print() (event *Event) {
-	event = &Event{
-		logger:   l,
-		level:    levels.LevelSilent,
-		metadata: make(map[string]string),
-	}
-
-	return
-}
-
-func (l *Logger) Error() (event *Event) {
-	event = &Event{
-		logger:   l,
-		level:    levels.LevelError,
-		metadata: make(map[string]string),
-	}
-
-	return
-}
-
-func (l *Logger) Info() (event *Event) {
-	event = &Event{
-		logger:   l,
-		level:    levels.LevelInfo,
-		metadata: make(map[string]string),
-	}
-
-	return
-}
-
-func (l *Logger) Warn() (event *Event) {
-	event = &Event{
-		logger:   l,
-		level:    levels.LevelWarn,
-		metadata: make(map[string]string),
-	}
-
-	return
-}
-
-func (l *Logger) Debug() (event *Event) {
-	event = &Event{
-		logger:   l,
-		level:    levels.LevelDebug,
-		metadata: make(map[string]string),
-	}
-
-	return
-}
-
-// Event is a builder for a log entry; it captures level, message, and metadata
-// before passing itself to the Logger for actual writing.
-//
-// Typical usage: logger.Info().Label("HTTP").Msg("Request received").
-//
-// Fields:
-//
-//   - logger   (*Logger)        - Back-reference to the parent Logger for invoking Log().
-//   - level    (levels.Level)   - Severity level of the event.
-//   - message  (string)         - Log message content.
-//   - metadata (map[string]string) - Arbitrary key-value pairs for context.
-type Event struct {
-	logger *Logger
-
-	level    levels.Level
-	message  string
-	metadata map[string]string
-}
-
-// Label sets the "label" metadata for the Event, e.g. component or category tag.
+// Option defines a function type for configuring log events using the options pattern.
 //
 // Parameters:
+//   - event (*_Event): The log event to configure
+type Option func(*_Event)
+
+// _NewEvent creates a new log event with the specified options. It initializes the
+// event with an empty metadata map and applies the provided options to set the level,
+// message, and metadata.
 //
-//   - label (string): Short identifier to include in the formatted output.
+// Parameters:
+//   - options (...Option): Configurations for the log event (e.g., level, message, metadata).
 //
 // Returns:
-//
-//	-event *Event: Same Event to allow chaining.
-func (e *Event) Label(label string) (event *Event) {
-	e.metadata["label"] = label
+//   - event (*_Event): A pointer to the configured log event.
+func _NewEvent(options ...Option) (event *_Event) {
+	event = &_Event{
+		metadata: make(map[string]string),
+	}
 
-	return e
+	for _, option := range options {
+		option(event)
+	}
+
+	return
 }
 
-// Msg finalizes the Event with a literal message and dispatches it to the Logger.
-//
-// Parameters:
-//
-//   - message (string): The content to log (may include format verbs if using Msgf).
-func (e *Event) Msg(message string) {
-	e.message = message
-
-	e.logger.Log(e)
-}
-
-// Msgf formats the Event message using fmt.Sprintf and dispatches it.
+// _WithLevel returns an Option that sets the severity level of a log event.
 //
 // Parameters:
+//   - level (levels.Level): The severity level to set.
 //
-//   - format (string): A fmt.Sprintf format string.
-//   - args   (...interface{}): Arguments for the format verbs.
-func (e *Event) Msgf(format string, args ...interface{}) {
-	e.message = fmt.Sprintf(format, args...)
-
-	e.logger.Log(e)
-}
-
-var DefaultLogger *Logger
-
-func init() {
-	DefaultLogger = &Logger{}
-
-	DefaultLogger.SetFormatter(formatter.NewConsoleFormatter(&formatter.ConsoleFormatterConfiguration{
-		Colorize: true,
-	}))
-	DefaultLogger.SetLevel(levels.LevelDebug)
-	DefaultLogger.SetWriter(writer.NewConsoleWriter())
-}
-
-func Fatal() (event *Event) {
-	event = &Event{
-		logger:   DefaultLogger,
-		level:    levels.LevelFatal,
-		metadata: make(map[string]string),
+// Returns:
+//   - option (Option): A function to configure the event's level.
+func _WithLevel(level levels.Level) (option Option) {
+	return func(event *_Event) {
+		event.WithLevel(level)
 	}
-
-	return
 }
 
-func Print() (event *Event) {
-	event = &Event{
-		logger:   DefaultLogger,
-		level:    levels.LevelSilent,
-		metadata: make(map[string]string),
+// _WithMessage returns an Option that sets the message content of a log event.
+//
+// Parameters:
+//   - message (string): The log message to set.
+//
+// Returns:
+//   - option (Option): A function to configure the event's message.
+func _WithMessage(message string) (option Option) {
+	return func(event *_Event) {
+		event.WithMessage(message)
 	}
-
-	return
 }
 
-func Error() (event *Event) {
-	event = &Event{
-		logger:   DefaultLogger,
-		level:    levels.LevelError,
-		metadata: make(map[string]string),
+// WithString returns an Option that adds a key-value pair to a log event's metadata.
+//
+// Parameters:
+//   - key (string): The metadata key.
+//   - value (string): The metadata value.
+//
+// Returns:
+//   - option (Option): A function to configure the event's metadata.
+func WithString(key, value string) (option Option) {
+	return func(event *_Event) {
+		event.WithString(key, value)
 	}
-
-	return
 }
 
-func Info() (event *Event) {
-	event = &Event{
-		logger:   DefaultLogger,
-		level:    levels.LevelInfo,
-		metadata: make(map[string]string),
+// WithLabel returns an Option that sets the "label" metadata field for a log event.
+//
+// Parameters:
+//   - label (string): The label to set in the metadata.
+//
+// Returns:
+//   - option (Option): A function to configure the event's label.
+func WithLabel(label string) (option Option) {
+	return func(event *_Event) {
+		event.WithLabel(label)
 	}
-
-	return
 }
 
-func Warn() (event *Event) {
-	event = &Event{
-		logger:   DefaultLogger,
-		level:    levels.LevelWarn,
-		metadata: make(map[string]string),
-	}
-
-	return
-}
-
-func Debug() (event *Event) {
-	event = &Event{
-		logger:   DefaultLogger,
-		level:    levels.LevelDebug,
-		metadata: make(map[string]string),
-	}
+// NewLogger creates and returns a new Logger instance with default settings (no
+// formatter, writer, or level set). Users must configure the logger with a level,
+// formatter, and writer before use to avoid silent failures during logging.
+//
+// Returns:
+//   - logger (*Logger): A pointer to a new Logger instance.
+func NewLogger() (logger *Logger) {
+	logger = &Logger{}
 
 	return
 }
