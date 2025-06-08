@@ -43,13 +43,15 @@ func (c *Console) Format(log *Log) (data []byte, err error) {
 
 	buffer.Grow(len(log.Message))
 
-	if label, ok := log.Metadata["label"]; ok && label != "" {
-		buffer.WriteByte('[')
+	if label, ok := log.Metadata["label"]; ok {
+		if label != "" {
+			buffer.WriteByte('[')
 
-		fmt.Fprintf(buffer, "%v", label)
+			fmt.Fprintf(buffer, "%v", label)
 
-		buffer.WriteByte(']')
-		buffer.WriteByte(' ')
+			buffer.WriteByte(']')
+			buffer.WriteByte(' ')
+		}
 
 		delete(log.Metadata, "label")
 	}
