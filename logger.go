@@ -12,7 +12,7 @@ import (
 // _Event represents a log event with a severity level, message, and optional metadata.
 // It is used internally by the Logger to construct log messages before formatting and
 // writing. The event is built using the options pattern, allowing flexible configuration
-// of its fields via Option functions.
+// of its fields via OptionFunc functions.
 //
 // Fields:
 //   - level (levels.Level): The severity level of the log message, as defined in the
@@ -122,11 +122,11 @@ func (l *Logger) SetWriter(w writer.Writer) {
 //
 // Parameters:
 //   - message (string): The log message.
-//   - options (...Option): Optional configurations for the log event (e.g., metadata).
-func (l *Logger) Fatal(message string, options ...Option) {
-	options = append(options, _WithLevel(levels.LevelFatal), _WithMessage(message))
+//   - ofs (...OptionFunc): Optional configurations for the log event (e.g., metadata).
+func (l *Logger) Fatal(message string, ofs ...OptionFunc) {
+	ofs = append(ofs, _WithLevel(levels.LevelFatal), _WithMessage(message))
 
-	l.Log(_NewEvent(options...))
+	l.Log(_NewEvent(ofs...))
 }
 
 // Print logs a message at LevelSilent, applying the provided options. The message
@@ -135,11 +135,11 @@ func (l *Logger) Fatal(message string, options ...Option) {
 //
 // Parameters:
 //   - message (string): The log message.
-//   - options (...Option): Optional configurations for the log event.
-func (l *Logger) Print(message string, options ...Option) {
-	options = append(options, _WithLevel(levels.LevelSilent), _WithMessage(message))
+//   - ofs (...OptionFunc): Optional configurations for the log event.
+func (l *Logger) Print(message string, ofs ...OptionFunc) {
+	ofs = append(ofs, _WithLevel(levels.LevelSilent), _WithMessage(message))
 
-	l.Log(_NewEvent(options...))
+	l.Log(_NewEvent(ofs...))
 }
 
 // Error logs a message at LevelError, applying the provided options. The message
@@ -148,11 +148,11 @@ func (l *Logger) Print(message string, options ...Option) {
 //
 // Parameters:
 //   - message (string): The log message.
-//   - options (...Option): Optional configurations for the log event.
-func (l *Logger) Error(message string, options ...Option) {
-	options = append(options, _WithLevel(levels.LevelError), _WithMessage(message))
+//   - ofs (...OptionFunc): Optional configurations for the log event.
+func (l *Logger) Error(message string, ofs ...OptionFunc) {
+	ofs = append(ofs, _WithLevel(levels.LevelError), _WithMessage(message))
 
-	l.Log(_NewEvent(options...))
+	l.Log(_NewEvent(ofs...))
 }
 
 // Info logs a message at LevelInfo, applying the provided options. The message
@@ -161,11 +161,11 @@ func (l *Logger) Error(message string, options ...Option) {
 //
 // Parameters:
 //   - message (string): The log message.
-//   - options (...Option): Optional configurations for the log event.
-func (l *Logger) Info(message string, options ...Option) {
-	options = append(options, _WithLevel(levels.LevelInfo), _WithMessage(message))
+//   - ofs (...OptionFunc): Optional configurations for the log event.
+func (l *Logger) Info(message string, ofs ...OptionFunc) {
+	ofs = append(ofs, _WithLevel(levels.LevelInfo), _WithMessage(message))
 
-	l.Log(_NewEvent(options...))
+	l.Log(_NewEvent(ofs...))
 }
 
 // Warn logs a message at LevelWarn, applying the provided options. The message
@@ -174,11 +174,11 @@ func (l *Logger) Info(message string, options ...Option) {
 //
 // Parameters:
 //   - message (string): The log message.
-//   - options (...Option): Optional configurations for the log event.
-func (l *Logger) Warn(message string, options ...Option) {
-	options = append(options, _WithLevel(levels.LevelWarn), _WithMessage(message))
+//   - ofs (...OptionFunc): Optional configurations for the log event.
+func (l *Logger) Warn(message string, ofs ...OptionFunc) {
+	ofs = append(ofs, _WithLevel(levels.LevelWarn), _WithMessage(message))
 
-	l.Log(_NewEvent(options...))
+	l.Log(_NewEvent(ofs...))
 }
 
 // Debug logs a message at LevelDebug, applying the provided options. The message
@@ -187,11 +187,11 @@ func (l *Logger) Warn(message string, options ...Option) {
 //
 // Parameters:
 //   - message (string): The log message.
-//   - options (...Option): Optional configurations for the log event.
-func (l *Logger) Debug(message string, options ...Option) {
-	options = append(options, _WithLevel(levels.LevelDebug), _WithMessage(message))
+//   - ofs (...OptionFunc): Optional configurations for the log event.
+func (l *Logger) Debug(message string, ofs ...OptionFunc) {
+	ofs = append(ofs, _WithLevel(levels.LevelDebug), _WithMessage(message))
 
-	l.Log(_NewEvent(options...))
+	l.Log(_NewEvent(ofs...))
 }
 
 // Log processes a log event by filtering, formatting, and writing it. The event is
@@ -245,87 +245,87 @@ func (l *Logger) Log(event *_Event) {
 	}
 }
 
-// Option defines a function type for configuring log events using the options pattern.
+// OptionFunc defines a function type for configuring log events using the options pattern.
 //
 // Parameters:
 //   - event (*_Event): The log event to configure
-type Option func(*_Event)
+type OptionFunc func(event *_Event)
 
 // _NewEvent creates a new log event with the specified options. It initializes the
 // event with an empty metadata map and applies the provided options to set the level,
 // message, and metadata.
 //
 // Parameters:
-//   - options (...Option): Configurations for the log event (e.g., level, message, metadata).
+//   - ofs (...OptionFunc): Configurations for the log event (e.g., level, message, metadata).
 //
 // Returns:
 //   - event (*_Event): A pointer to the configured log event.
-func _NewEvent(options ...Option) (event *_Event) {
+func _NewEvent(ofs ...OptionFunc) (event *_Event) {
 	event = &_Event{
 		metadata: make(map[string]interface{}),
 	}
 
-	for _, option := range options {
-		option(event)
+	for _, f := range ofs {
+		f(event)
 	}
 
 	return
 }
 
-// _WithLevel returns an Option that sets the severity level of a log event.
+// _WithLevel returns an OptionFunc that sets the severity level of a log event.
 //
 // Parameters:
 //   - level (levels.Level): The severity level to set.
 //
 // Returns:
-//   - option (Option): A function to configure the event's level.
-func _WithLevel(level levels.Level) (option Option) {
+//   - (OptionFunc): A function to configure the event's level.
+func _WithLevel(level levels.Level) OptionFunc {
 	return func(event *_Event) {
 		event.WithLevel(level)
 	}
 }
 
-// _WithMessage returns an Option that sets the message content of a log event.
+// _WithMessage returns an OptionFunc that sets the message content of a log event.
 //
 // Parameters:
 //   - message (string): The log message to set.
 //
 // Returns:
-//   - option (Option): A function to configure the event's message.
-func _WithMessage(message string) (option Option) {
+//   - (OptionFunc): A function to configure the event's message.
+func _WithMessage(message string) OptionFunc {
 	return func(event *_Event) {
 		event.WithMessage(message)
 	}
 }
 
-// WithString returns an Option that adds a key-value pair to a log event's metadata.
+// WithString returns an OptionFunc that adds a key-value pair to a log event's metadata.
 //
 // Parameters:
 //   - key (string): The metadata key.
 //   - value (string): The metadata value.
 //
 // Returns:
-//   - option (Option): A function to configure the event's metadata.
-func WithString(key, value string) (option Option) {
+//   - (OptionFunc): A function to configure the event's metadata.
+func WithString(key, value string) OptionFunc {
 	return func(event *_Event) {
 		event.WithString(key, value)
 	}
 }
 
-// WithLabel returns an Option that sets the "label" metadata field for a log event.
+// WithLabel returns an OptionFunc that sets the "label" metadata field for a log event.
 //
 // Parameters:
 //   - label (string): The label to set in the metadata.
 //
 // Returns:
-//   - option (Option): A function to configure the event's label.
-func WithLabel(label string) (option Option) {
+//   - (OptionFunc): A function to configure the event's label.
+func WithLabel(label string) OptionFunc {
 	return func(event *_Event) {
 		event.WithLabel(label)
 	}
 }
 
-// WithError returns an Option that adds an error to a log event's metadata under
+// WithError returns an OptionFunc that adds an error to a log event's metadata under
 // the "error" key. The error is stored as-is, and formatters are responsible for
 // converting it to a string or other format as needed.
 //
@@ -333,8 +333,8 @@ func WithLabel(label string) (option Option) {
 //   - err (error): The error to set in the metadata.
 //
 // Returns:
-//   - option (Option): A function to configure the event's error metadata.
-func WithError(err error) (option Option) {
+//   - (OptionFunc): A function to configure the event's error metadata.
+func WithError(err error) OptionFunc {
 	return func(event *_Event) {
 		event.WithError(err)
 	}

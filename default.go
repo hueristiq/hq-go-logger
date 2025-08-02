@@ -40,9 +40,9 @@ func init() {
 //
 // Parameters:
 //   - message (string): The log message.
-//   - options (...Option): Optional configurations for the log event (e.g., metadata).
-func Fatal(message string, options ...Option) {
-	DefaultLogger.Fatal(message, options...)
+//   - ofs (...OptionFunc): Optional configurations for the log event (e.g., metadata).
+func Fatal(message string, ofs ...OptionFunc) {
+	DefaultLogger.Fatal(message, ofs...)
 }
 
 // Print logs a message at LevelSilent using DefaultLogger, applying the provided
@@ -52,9 +52,9 @@ func Fatal(message string, options ...Option) {
 //
 // Parameters:
 //   - message (string): The log message.
-//   - options (...Option): Optional configurations for the log event.
-func Print(message string, options ...Option) {
-	DefaultLogger.Print(message, options...)
+//   - ofs (...OptionFunc): Optional configurations for the log event.
+func Print(message string, ofs ...OptionFunc) {
+	DefaultLogger.Print(message, ofs...)
 }
 
 // Error logs a message at LevelError using DefaultLogger, applying the provided
@@ -64,9 +64,9 @@ func Print(message string, options ...Option) {
 //
 // Parameters:
 //   - message (string): The log message.
-//   - options (...Option): Optional configurations for the log event.
-func Error(message string, options ...Option) {
-	DefaultLogger.Error(message, options...)
+//   - ofs (...OptionFunc): Optional configurations for the log event.
+func Error(message string, ofs ...OptionFunc) {
+	DefaultLogger.Error(message, ofs...)
 }
 
 // Info logs a message at LevelInfo using DefaultLogger, applying the provided
@@ -76,9 +76,9 @@ func Error(message string, options ...Option) {
 //
 // Parameters:
 //   - message (string): The log message.
-//   - options (...Option): Optional configurations for the log event.
-func Info(message string, options ...Option) {
-	DefaultLogger.Info(message, options...)
+//   - ofs (...OptionFunc): Optional configurations for the log event.
+func Info(message string, ofs ...OptionFunc) {
+	DefaultLogger.Info(message, ofs...)
 }
 
 // Warn logs a message at LevelWarn using DefaultLogger, applying the provided
@@ -88,9 +88,9 @@ func Info(message string, options ...Option) {
 //
 // Parameters:
 //   - message (string): The log message.
-//   - options (...Option): Optional configurations for the log event.
-func Warn(message string, options ...Option) {
-	DefaultLogger.Warn(message, options...)
+//   - ofs (...OptionFunc): Optional configurations for the log event.
+func Warn(message string, ofs ...OptionFunc) {
+	DefaultLogger.Warn(message, ofs...)
 }
 
 // Debug logs a message at LevelDebug using DefaultLogger, applying the provided
@@ -100,7 +100,7 @@ func Warn(message string, options ...Option) {
 //
 // Parameters:
 //   - message (string): The log message.
-//   - options (...Option): Optional configurations for the log event.
-func Debug(message string, options ...Option) {
-	DefaultLogger.Debug(message, options...)
+//   - ofs (...OptionFunc): Optional configurations for the log event.
+func Debug(message string, ofs ...OptionFunc) {
+	DefaultLogger.Debug(message, ofs...)
 }
