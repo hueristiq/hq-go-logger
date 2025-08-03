@@ -26,47 +26,47 @@ type _Event struct {
 	metadata map[string]interface{}
 }
 
-// WithLevel sets the severity level of the log event.
+// SetLevel sets the severity level of the log event.
 //
 // Parameters:
 //   - level (levels.Level): The severity level to set, from the levels package.
-func (e *_Event) WithLevel(level levels.Level) {
+func (e *_Event) SetLevel(level levels.Level) {
 	e.level = level
 }
 
-// WithMessage sets the message content of the log event.
+// SetMessage sets the message content of the log event.
 //
 // Parameters:
 //   - message (string): The log message to set.
-func (e *_Event) WithMessage(message string) {
+func (e *_Event) SetMessage(message string) {
 	e.message = message
 }
 
-// WithString adds a key-value pair to the log event's metadata.
+// SetString adds a key-value pair to the log event's metadata.
 //
 // Parameters:
 //   - key (string): The metadata key.
 //   - value (string): The metadata value.
-func (e *_Event) WithString(key, value string) {
+func (e *_Event) SetString(key, value string) {
 	e.metadata[key] = value
 }
 
-// WithLabel sets the "label" metadata field for the log event, used by formatters
+// SetLabel sets the "label" metadata field for the log event, used by formatters
 // to identify the log level in output (e.g., "[INFO]").
 //
 // Parameters:
 //   - label (string): The label to set in the metadata.
-func (e *_Event) WithLabel(label string) {
-	e.WithString("label", label)
+func (e *_Event) SetLabel(label string) {
+	e.SetString("label", label)
 }
 
-// WithError adds an error to the log event's metadata under the "error" key. The
+// SetError adds an error to the log event's metadata under the "error" key. The
 // error value is stored as-is, and formatters are responsible for converting it to
 // a string or other format as needed.
 //
 // Parameters:
 //   - err (error): The error to set in the metadata.
-func (e *_Event) WithError(err error) {
+func (e *_Event) SetError(err error) {
 	e.metadata["error"] = err
 }
 
@@ -281,7 +281,7 @@ func _NewEvent(ofs ...OptionFunc) (event *_Event) {
 //   - (OptionFunc): A function to configure the event's level.
 func _WithLevel(level levels.Level) OptionFunc {
 	return func(event *_Event) {
-		event.WithLevel(level)
+		event.SetLevel(level)
 	}
 }
 
@@ -294,7 +294,7 @@ func _WithLevel(level levels.Level) OptionFunc {
 //   - (OptionFunc): A function to configure the event's message.
 func _WithMessage(message string) OptionFunc {
 	return func(event *_Event) {
-		event.WithMessage(message)
+		event.SetMessage(message)
 	}
 }
 
@@ -308,7 +308,7 @@ func _WithMessage(message string) OptionFunc {
 //   - (OptionFunc): A function to configure the event's metadata.
 func WithString(key, value string) OptionFunc {
 	return func(event *_Event) {
-		event.WithString(key, value)
+		event.SetString(key, value)
 	}
 }
 
@@ -321,7 +321,7 @@ func WithString(key, value string) OptionFunc {
 //   - (OptionFunc): A function to configure the event's label.
 func WithLabel(label string) OptionFunc {
 	return func(event *_Event) {
-		event.WithLabel(label)
+		event.SetLabel(label)
 	}
 }
 
@@ -336,7 +336,7 @@ func WithLabel(label string) OptionFunc {
 //   - (OptionFunc): A function to configure the event's error metadata.
 func WithError(err error) OptionFunc {
 	return func(event *_Event) {
-		event.WithError(err)
+		event.SetError(err)
 	}
 }
 
