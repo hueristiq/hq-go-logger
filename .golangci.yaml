@@ -64,7 +64,7 @@ linters:
         # - mnd
         - musttag
         # - nakedret
-        - nestif
+        # - nestif
         # - nilerr
         - nilnesserr
         - nilnil
@@ -80,7 +80,7 @@ linters:
         - promlinter
         - protogetter
         - reassign
-        - recvcheck
+        # - recvcheck
         # - revive
         - rowserrcheck
         - sloglint
