@@ -4,7 +4,7 @@ go 1.24.2
 
 require (
 	github.com/fatih/color v1.18.0
-	github.com/hueristiq/hq-go-errors v0.0.0-20250803105751-c1fb829a1512
+	github.com/hueristiq/hq-go-errors v0.0.0-20250808110327-270f8a313fcf
 	github.com/logrusorgru/aurora/v4 v4.0.0
 )
 
