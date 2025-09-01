@@ -118,7 +118,7 @@ func (c *Console) Format(log *Log) (data []byte, err error) {
 			var hqErr hqgoerrors.Error
 
 			if hqgoerrors.As(err, &hqErr) {
-				formattedErrorMetadata = "\n\n" + hqgoerrors.ToString(err, true)
+				formattedErrorMetadata = "\n\n" + hqgoerrors.ToString(err, hqgoerrors.FormatWithTrace())
 			} else {
 				formattedErrorMetadata = "\n\n" + err.Error()
 			}
