@@ -67,20 +67,14 @@ func (c *Console) Format(log *Log) (data []byte, err error) {
 
 	buffer.Grow(estimatedSize)
 
-	if c.cfg.IncludeTimestamp {
-		timestamp := log.Timestamp
-
-		if timestamp.IsZero() {
-			timestamp = time.Now()
-		}
-
-		buffer.WriteString(timestamp.Format(c.cfg.TimestampFormat))
+	if c.cfg.IncludeTimestamp && !log.Timestamp.IsZero() {
+		buffer.WriteString(log.Timestamp.Format(c.cfg.TimestampFormat))
 		buffer.WriteByte(' ')
 	}
 
 	if label, ok := metadata["label"]; ok {
-		if label != "" {
-			if str, ok := label.(string); ok && str != "" && c.cfg.IncludeLabel {
+		if label != "" && c.cfg.IncludeLabel {
+			if str, ok := label.(string); ok && str != "" {
 				colorized := str
 
 				if c.cfg.Colorize {

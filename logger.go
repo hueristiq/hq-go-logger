@@ -22,14 +22,14 @@ import (
 //   - level (hqgologgerlevels.Level): The severity level of the log message, as defined in the levels
 //     package (e.g., LevelInfo, LevelFatal). Lower values indicate higher severity.
 //   - message (string): The primary content of the log message, describing the event or condition.
-//   - metadata (map[string]interface{}): Optional key-value pairs for additional context, such
+//   - metadata (map[string]any): Optional key-value pairs for additional context, such
 //     as labels, errors, or system metrics. The "label" key is used for formatted output, and
 //     the "error" key is used for error details.
 type _Event struct {
 	timestamp time.Time
 	level     hqgologgerlevels.Level
 	message   string
-	metadata  map[string]interface{}
+	metadata  map[string]any
 }
 
 // SetTimestamp sets the timestamp of the log event, used for including timing information
@@ -59,6 +59,21 @@ func (e *_Event) SetMessage(m string) {
 	e.message = m
 }
 
+// SetValue adds a key-value pair to the log event's metadata with a value of any type.
+// If the metadata map is nil, it is initialized before adding the pair. This allows
+// flexibility for storing various data types, such as integers or errors, in metadata.
+//
+// Parameters:
+//   - key (string): The metadata key.
+//   - value (any): The metadata value, which can be any type.
+func (e *_Event) SetValue(key string, value any) {
+	if e.metadata == nil {
+		e.metadata = make(map[string]any)
+	}
+
+	e.metadata[key] = value
+}
+
 // SetString adds a key-value pair to the log event's metadata with a string value. If the
 // metadata map is nil, it is initialized before adding the pair.
 //
@@ -67,22 +82,7 @@ func (e *_Event) SetMessage(m string) {
 //   - value (string): The metadata value.
 func (e *_Event) SetString(key, value string) {
 	if e.metadata == nil {
-		e.metadata = make(map[string]interface{})
-	}
-
-	e.metadata[key] = value
-}
-
-// SetValue adds a key-value pair to the log event's metadata with a value of any type.
-// If the metadata map is nil, it is initialized before adding the pair. This allows
-// flexibility for storing various data types, such as integers or errors, in metadata.
-//
-// Parameters:
-//   - key (string): The metadata key.
-//   - value (interface{}): The metadata value, which can be any type.
-func (e *_Event) SetValue(key string, value interface{}) {
-	if e.metadata == nil {
-		e.metadata = make(map[string]interface{})
+		e.metadata = make(map[string]any)
 	}
 
 	e.metadata[key] = value
@@ -332,7 +332,8 @@ type OptionFunc func(event *_Event)
 //   - event (*_Event): A pointer to the configured log event.
 func _NewEvent(ofs ...OptionFunc) (event *_Event) {
 	event = &_Event{
-		metadata: make(map[string]interface{}),
+		timestamp: time.Now(),
+		metadata:  make(map[string]any),
 	}
 
 	for _, f := range ofs {
@@ -372,6 +373,20 @@ func _WithMessage(message string) OptionFunc {
 	}
 }
 
+func WithoutTimestamp() OptionFunc {
+	return func(event *_Event) {
+		var timestamp time.Time
+
+		event.SetTimestamp(timestamp)
+	}
+}
+
+func WithValue(key string, value any) OptionFunc {
+	return func(event *_Event) {
+		event.SetValue(key, value)
+	}
+}
+
 // WithString returns an OptionFunc that adds a key-value pair with a string value to a
 // log event’s metadata. It can be passed to level-specific logging methods (e.g., Info,
 // Error) to include custom metadata in the log event.
@@ -388,12 +403,6 @@ func WithString(key, value string) OptionFunc {
 	}
 }
 
-func WithValue(key string, value interface{}) OptionFunc {
-	return func(event *_Event) {
-		event.SetValue(key, value)
-	}
-}
-
 // WithLabel returns an OptionFunc that sets the "label" metadata field for a log event,
 // typically used by formatters to include a short identifier in the output (e.g., "[INFO]").
 // It can be passed to level-specific logging methods to override the default label.
@@ -406,6 +415,12 @@ func WithValue(key string, value interface{}) OptionFunc {
 func WithLabel(label string) OptionFunc {
 	return func(event *_Event) {
 		event.SetLabel(label)
+	}
+}
+
+func WithoutLabel() OptionFunc {
+	return func(event *_Event) {
+		event.SetLabel("")
 	}
 }
 
