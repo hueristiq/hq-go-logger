@@ -2,6 +2,7 @@ package writer
 
 import (
 	"io"
+	"reflect"
 
 	hqgologgerlevels "github.com/hueristiq/hq-lib-logger-go/levels"
 )
@@ -10,9 +11,9 @@ import (
 // multiple Writer instances, forwarding log messages to each underlying writer.
 // It enables simultaneous logging to multiple destinations (e.g., console and file)
 // while maintaining a single Writer interface. Every writer is always attempted,
-// even if some fail; the last non-nil error encountered is returned. Nil writers
-// are filtered out during initialization to prevent runtime issues. Construct with
-// [NewMultiWriter].
+// even if some fail; the last non-nil error encountered is returned. Nil and
+// typed-nil writers (interfaces holding nil pointers) are filtered out during
+// initialization to prevent runtime issues. Construct with [NewMultiWriter].
 //
 // Fields:
 //   - writers ([]Writer): The slice of Writer instances to which log messages are
@@ -97,11 +98,13 @@ type Writer interface {
 var _ Writer = (*MultiWriter)(nil)
 
 // NewMultiWriter creates and returns a new MultiWriter instance that aggregates
-// the provided Writer instances. It filters out nil writers to ensure safe
-// operation and initializes the writers slice with the non-nil writers. The
-// resulting MultiWriter can be used to forward log messages to multiple
-// destinations simultaneously. If no non-nil writers are provided, an empty
-// MultiWriter is returned, which performs no operations when used.
+// the provided Writer instances. It filters out nil and typed-nil writers (an
+// interface holding a nil pointer, which compares unequal to nil but panics when
+// its methods are called) to ensure safe operation, and initializes the writers
+// slice with the remaining writers. The resulting MultiWriter can be used to
+// forward log messages to multiple destinations simultaneously. If no usable
+// writers are provided, an empty MultiWriter is returned, which performs no
+// operations when used.
 //
 // Parameters:
 //   - writers (...Writer): A variadic list of Writer instances to aggregate.
@@ -115,10 +118,22 @@ func NewMultiWriter(writers ...Writer) (multi *MultiWriter) {
 	}
 
 	for _, w := range writers {
-		if w != nil {
+		if !isNilWriter(w) {
 			multi.writers = append(multi.writers, w)
 		}
 	}
 
 	return
+}
+
+// isNilWriter reports whether w is nil, including a typed-nil Writer — an
+// interface holding a nil pointer.
+func isNilWriter(w Writer) bool {
+	if w == nil {
+		return true
+	}
+
+	value := reflect.ValueOf(w)
+
+	return value.Kind() == reflect.Pointer && value.IsNil()
 }

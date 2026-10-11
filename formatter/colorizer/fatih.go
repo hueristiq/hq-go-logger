@@ -18,7 +18,7 @@ import (
 // Fields:
 //   - fatal (*color.Color): The color configuration for LevelFatal messages,
 //     using high-intensity red with bold styling.
-//   - err (*color.Color): The color configuration for LevelError messages,
+//   - errColor (*color.Color): The color configuration for LevelError messages,
 //     using high-intensity red with bold styling.
 //   - info (*color.Color): The color configuration for LevelInfo messages,
 //     using high-intensity blue with bold styling.
@@ -27,11 +27,11 @@ import (
 //   - debug (*color.Color): The color configuration for LevelDebug messages,
 //     using high-intensity magenta with bold styling.
 type FatihColorizer struct {
-	fatal *color.Color
-	err   *color.Color
-	info  *color.Color
-	warn  *color.Color
-	debug *color.Color
+	fatal    *color.Color
+	errColor *color.Color
+	info     *color.Color
+	warn     *color.Color
+	debug    *color.Color
 }
 
 // Colorize applies color and style formatting to the input text based on the
@@ -58,7 +58,7 @@ func (c *FatihColorizer) Colorize(text string, level hqgologgerlevels.Level) (co
 	case hqgologgerlevels.LevelFatal:
 		colorized = c.fatal.Sprint(text)
 	case hqgologgerlevels.LevelError:
-		colorized = c.err.Sprint(text)
+		colorized = c.errColor.Sprint(text)
 	case hqgologgerlevels.LevelInfo:
 		colorized = c.info.Sprint(text)
 	case hqgologgerlevels.LevelWarn:
@@ -89,11 +89,11 @@ var _ hqgologgerformatter.Colorizer = (*FatihColorizer)(nil)
 //     pre-configured color settings for all log levels.
 func NewFatihColorizer() (colorizer *FatihColorizer) {
 	colorizer = &FatihColorizer{
-		fatal: color.New(color.FgHiRed, color.Bold),
-		err:   color.New(color.FgHiRed, color.Bold),
-		info:  color.New(color.FgHiBlue, color.Bold),
-		warn:  color.New(color.FgHiYellow, color.Bold),
-		debug: color.New(color.FgHiMagenta, color.Bold),
+		fatal:    color.New(color.FgHiRed, color.Bold),
+		errColor: color.New(color.FgHiRed, color.Bold),
+		info:     color.New(color.FgHiBlue, color.Bold),
+		warn:     color.New(color.FgHiYellow, color.Bold),
+		debug:    color.New(color.FgHiMagenta, color.Bold),
 	}
 
 	return

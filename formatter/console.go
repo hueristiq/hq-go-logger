@@ -3,6 +3,7 @@ package formatter
 import (
 	"bytes"
 	"fmt"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -34,17 +35,20 @@ type Console struct {
 
 // Format converts a Log struct into a formatted byte slice for console output.
 // The output format is "[timestamp] [label] message [metadata]" (with optional components).
-// Timestamps are included if configured, using the specified format (default: RFC3339).
-// The label is taken from metadata[LabelKey] and colorized if enabled; when the
-// key is absent, the level's default label (see defaultLabels) is used instead,
-// while an explicitly empty or non-string label omits the tag. The message is
-// trimmed of a single trailing newline. Metadata is appended as key=value pairs,
-// with the reserved keys [LabelKey] and [ErrorKey] skipped — the ErrorKey entry
-// is instead rendered as a trailing block containing the error message, separated
-// from the message by a blank line. The input Log and its Metadata map are never
-// mutated. The buffer is pre-allocated with an estimated size for efficiency.
-// The returned slice is freshly allocated for each call and stays valid after
-// Format returns, as the [Formatter] contract requires.
+// Timestamps are included if configured, using the specified format (default: RFC3339);
+// if the formatted timestamp is empty (e.g., an empty TimestampFormat), it and its
+// separating space are omitted, so the output carries no leading space. The label is
+// taken from metadata[LabelKey] and colorized if enabled; when the key is absent, the
+// level's default label (see defaultLabels) is used instead, while an explicitly empty
+// or non-string label omits the tag. The message is trimmed of a single trailing
+// newline. Metadata is appended as key=value pairs, with the reserved keys [LabelKey]
+// and [ErrorKey] skipped — the ErrorKey entry is instead rendered as a trailing block
+// containing the error message, separated from the message by a blank line. Typed-nil
+// errors — error interfaces holding nil pointers — render as "<nil>" rather than
+// panicking. The input Log and its Metadata map are never mutated. The buffer is
+// pre-allocated with an estimated size for efficiency. The returned slice is freshly
+// allocated for each call and stays valid after Format returns, as the [Formatter]
+// contract requires.
 //
 // Parameters:
 //   - log (*Log): The log message to format, containing timestamp, level, message,
@@ -57,9 +61,7 @@ type Console struct {
 //     level is invalid; otherwise nil.
 func (c *Console) Format(log *Log) (data []byte, err error) {
 	if !log.Level.IsValid() {
-		err = fmt.Errorf("%w (%d)", hqgologgerlevels.ErrUnknownLevel, log.Level.Int())
-
-		return
+		return nil, fmt.Errorf("%w (%d)", hqgologgerlevels.ErrUnknownLevel, log.Level.Int())
 	}
 
 	buffer := &bytes.Buffer{}
@@ -77,8 +79,10 @@ func (c *Console) Format(log *Log) (data []byte, err error) {
 	buffer.Grow(estimatedSize)
 
 	if c.cfg.IncludeTimestamp && !log.Timestamp.IsZero() {
-		buffer.WriteString(log.Timestamp.Format(c.cfg.TimestampFormat))
-		buffer.WriteByte(' ')
+		if timestamp := log.Timestamp.Format(c.cfg.TimestampFormat); timestamp != "" {
+			buffer.WriteString(timestamp)
+			buffer.WriteByte(' ')
+		}
 	}
 
 	if c.cfg.IncludeLabel {
@@ -109,14 +113,7 @@ func (c *Console) Format(log *Log) (data []byte, err error) {
 	var errorText string
 
 	if errValue, ok := log.Metadata[ErrorKey]; ok && errValue != nil {
-		switch e := errValue.(type) {
-		case string:
-			errorText = e
-		case error:
-			errorText = e.Error()
-		default:
-			errorText = fmt.Sprintf("%v", e)
-		}
+		errorText = nilSafeErrorText(errValue)
 	}
 
 	keys := make([]string, 0, len(log.Metadata))
@@ -151,7 +148,7 @@ func (c *Console) Format(log *Log) (data []byte, err error) {
 		case string:
 			buffer.WriteString(value)
 		case error:
-			buffer.WriteString(value.Error())
+			buffer.WriteString(nilSafeErrorText(value))
 		case int:
 			buffer.Write(strconv.AppendInt(digits[:0], int64(value), 10))
 		case int8:
@@ -188,9 +185,25 @@ func (c *Console) Format(log *Log) (data []byte, err error) {
 		buffer.WriteString(errorText)
 	}
 
-	data = buffer.Bytes()
+	return buffer.Bytes(), nil
+}
 
-	return
+// nilSafeErrorText converts a metadata value to its text representation without
+// panicking on typed-nil errors. An error interface holding a nil pointer
+// compares unequal to nil, and calling Error on it panics; such values render
+// as "<nil>", matching how the "%v" verb formats the underlying nil pointer.
+func nilSafeErrorText(value any) string {
+	reflected := reflect.ValueOf(value)
+
+	if reflected.Kind() == reflect.Pointer && reflected.IsNil() {
+		return "<nil>"
+	}
+
+	if err, ok := value.(error); ok {
+		return err.Error()
+	}
+
+	return fmt.Sprint(value)
 }
 
 // ConsoleFormatterConfiguration defines configuration options for the Console formatter.

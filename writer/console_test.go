@@ -257,6 +257,32 @@ func TestConsoleWriterCloseReturnsStreamError(t *testing.T) {
 	assert.True(t, out.closed, "stdout must still be closed when stderr fails")
 }
 
+type countingCloser struct {
+	bytes.Buffer
+
+	closes int
+}
+
+func (c *countingCloser) Close() error {
+	c.closes++
+
+	return nil
+}
+
+func TestConsoleWriterCloseClosesSharedStreamOnce(t *testing.T) {
+	t.Parallel()
+
+	stream := &countingCloser{}
+
+	w := NewConsoleWriter(&ConsoleWriterConfiguration{
+		Stdout: stream,
+		Stderr: stream,
+	})
+
+	require.NoError(t, w.Close())
+	assert.Equal(t, 1, stream.closes, "a stream shared by stdout and stderr must be closed exactly once")
+}
+
 func TestConsoleImplementsWriter(t *testing.T) {
 	t.Parallel()
 

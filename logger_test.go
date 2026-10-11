@@ -295,6 +295,21 @@ func TestWithErrorMetadata(t *testing.T) {
 	assert.NotContains(t, out, "error=")
 }
 
+func TestTypedNilErrorDoesNotPanic(t *testing.T) {
+	t.Parallel()
+
+	w := &captureWriter{}
+	l := newTestLogger(w)
+
+	var pathErr *os.PathError
+
+	assert.NotPanics(t, func() {
+		l.Error("boom", WithError(pathErr), WithValue("cause", error(pathErr)))
+	})
+
+	assert.Equal(t, "[ERR] boom cause=<nil>\n\n<nil>\n", w.String())
+}
+
 func TestWithoutTimestamp(t *testing.T) {
 	t.Parallel()
 

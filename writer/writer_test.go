@@ -60,6 +60,23 @@ func TestMultiWriterFiltersNilWriters(t *testing.T) {
 	assert.Len(t, a.writes, 1)
 }
 
+func TestMultiWriterFiltersTypedNilWriters(t *testing.T) {
+	t.Parallel()
+
+	a := &recordingWriter{}
+
+	var nilMulti *MultiWriter
+
+	var nilRecording *recordingWriter
+
+	m := NewMultiWriter(a, nilMulti, nilRecording)
+
+	require.NoError(t, m.Write([]byte("x"), hqgologgerlevels.LevelDebug))
+	assert.Len(t, a.writes, 1)
+
+	require.NoError(t, m.Close())
+}
+
 func TestMultiWriterEmptyIsNoOp(t *testing.T) {
 	t.Parallel()
 
