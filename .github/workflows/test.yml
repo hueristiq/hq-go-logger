@@ -46,8 +46,7 @@ jobs:
                     fetch-depth: 0
             -
                 name: Go Module Management
-                run: |
-                    make go-mod-tidy
+                run: make go-mod-tidy
                 working-directory: .
             -
                 name: Go test
