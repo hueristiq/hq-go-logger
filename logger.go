@@ -79,18 +79,14 @@ func (e *Event) SetValue(key string, value any) {
 	e.metadata[key] = value
 }
 
-// SetString adds a key-value pair to the log event's metadata with a string value. If the
-// metadata map is nil, it is initialized before adding the pair.
+// SetString adds a key-value pair to the log event's metadata with a string value.
+// It delegates to [Event.SetValue].
 //
 // Parameters:
 //   - key (string): The metadata key.
 //   - value (string): The metadata value.
 func (e *Event) SetString(key, value string) {
-	if e.metadata == nil {
-		e.metadata = make(map[string]any)
-	}
-
-	e.metadata[key] = value
+	e.SetValue(key, value)
 }
 
 // SetLabel sets the reserved label metadata field for the log event, typically used by
@@ -398,24 +394,27 @@ func (l *Logger) Debug(message string, opts ...OptionFunc) {
 }
 
 // Log processes a log event by filtering, formatting, and writing it. A nil event is a
-// no-op. The event is ignored if its level is greater than the logger's threshold (less
-// severe); the threshold is read from a lock-free atomic mirror, so filter-discarded
-// events — the common case in production — never touch the shared mutex. A concurrent
-// [Logger.SetLevel] may therefore just miss an in-flight event, which is then still
-// written; that benign race is inherent to lock-free threshold filtering. The event's
-// metadata is passed to the formatter unchanged; renderers apply their own conventions —
-// the bundled console formatter substitutes a default label based on the level (e.g.,
-// "INF" for LevelInfo) when the event carries none. Formatting and writing happen only
-// when both a formatter and a writer are configured; otherwise the event is silently
-// dropped. Format and write errors are deliberately ignored — there is no meaningful
-// recovery path inside a logger, and logging must never crash the application. For
-// LevelFatal events the program exits with status code 1 regardless of whether the
-// event was written, guaranteeing that Fatal never returns; the exit is performed with
-// os.Exit, so deferred functions do not run. The method is thread-safe: it holds the
-// logger's read lock around the Format and Write calls, so a concurrent [Logger.Close]
-// cannot close the writer in the middle of a write. Concurrent Log calls still proceed
-// in parallel with each other, so the formatter and writer must be safe for concurrent
-// use.
+// no-op. Warning: an event whose level was never set carries the zero Level, which is
+// LevelFatal — it passes any valid threshold and exits the process, exactly like a
+// [Logger.Fatal] call, so always set the level explicitly (e.g., with [WithLevel]) when
+// logging non-fatal events. The event is ignored if its level is greater than the
+// logger's threshold (less severe); the threshold is read from a lock-free atomic
+// mirror, so filter-discarded events — the common case in production — never touch the
+// shared mutex. A concurrent [Logger.SetLevel] may therefore just miss an in-flight
+// event, which is then still written; that benign race is inherent to lock-free
+// threshold filtering. The event's metadata is passed to the formatter unchanged;
+// renderers apply their own conventions — the bundled console formatter substitutes a
+// default label based on the level (e.g., "INF" for LevelInfo) when the event carries
+// none. Formatting and writing happen only when both a formatter and a writer are
+// configured; otherwise the event is silently dropped. Format and write errors are
+// deliberately ignored — there is no meaningful recovery path inside a logger, and
+// logging must never crash the application. For LevelFatal events the program exits
+// with status code 1 regardless of whether the event was written, guaranteeing that
+// Fatal never returns; the exit is performed with os.Exit, so deferred functions do
+// not run. The method is thread-safe: it holds the logger's read lock around the
+// Format and Write calls, so a concurrent [Logger.Close] cannot close the writer in
+// the middle of a write. Concurrent Log calls still proceed in parallel with each
+// other, so the formatter and writer must be safe for concurrent use.
 //
 // Parameters:
 //   - event (*Event): The log event to process, containing timestamp, level, message,
@@ -467,8 +466,10 @@ type OptionFunc func(event *Event)
 // NewEvent creates a new log event with the specified options. It initializes the event
 // with the current time and applies the provided OptionFunc configurations to set the
 // level, message, and metadata. The metadata map is allocated lazily, only when an option
-// actually attaches metadata. Combined with [WithLevel] and [WithMessage], NewEvent enables
-// emitting fully custom events through [Logger.Log].
+// actually attaches metadata. Warning: the event starts with the zero Level, which is
+// LevelFatal — unless an option sets a different level (typically [WithLevel]), passing
+// the event to [Logger.Log] exits the process. Combined with [WithLevel] and [WithMessage],
+// NewEvent enables emitting fully custom events through [Logger.Log].
 //
 // Parameters:
 //   - opts (...OptionFunc): Configurations for the log event (e.g., level, message, metadata).
@@ -599,8 +600,10 @@ func WithoutLabel() (fn OptionFunc) {
 // WithError returns an OptionFunc that adds an error to a log event's metadata
 // under the reserved error key. The error is stored as-is; formatters decide how to
 // render it. The bundled console formatter prints it as a trailing block
-// containing err.Error(), separated from the message by a blank line. It can be
-// passed to level-specific logging methods to include error details.
+// containing err.Error(), separated from the message by a blank line; a typed-nil
+// error (an interface holding a nil pointer) renders as "<nil>" instead of
+// panicking. It can be passed to level-specific logging methods to include error
+// details.
 //
 // Parameters:
 //   - err (error): The error to set in the metadata.

@@ -3,6 +3,7 @@ package formatter
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -251,6 +252,27 @@ func TestFormatZeroTimestampOmitted(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, "m", string(data))
+}
+
+func TestFormatEmptyTimestampFormatOmitsLeadingSpace(t *testing.T) {
+	t.Parallel()
+
+	f := NewConsoleFormatter(&ConsoleFormatterConfiguration{
+		IncludeTimestamp: true,
+		TimestampFormat:  "",
+		IncludeLabel:     true,
+		Colorizer:        NewNoOpColorizer(),
+	})
+
+	data, err := f.Format(&Log{
+		Timestamp: time.Date(2025, 8, 8, 13, 45, 0, 0, time.UTC),
+		Level:     hqgologgerlevels.LevelInfo,
+		Message:   "m",
+	})
+
+	require.NoError(t, err)
+
+	assert.Equal(t, "[INF] m", string(data))
 }
 
 func TestFormatMetadataDeterministicOrder(t *testing.T) {
@@ -537,6 +559,38 @@ func TestFormatNilErrorValueRendersNoBlock(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, "[ERR] m", string(data))
+}
+
+func TestFormatTypedNilErrorRendersNil(t *testing.T) {
+	t.Parallel()
+
+	var pathErr *os.PathError
+
+	data, err := plainFormatter().Format(&Log{
+		Level:    hqgologgerlevels.LevelError,
+		Message:  "m",
+		Metadata: map[string]any{"error": pathErr},
+	})
+
+	require.NoError(t, err)
+
+	assert.Equal(t, "[ERR] m\n\n<nil>", string(data))
+}
+
+func TestFormatTypedNilErrorMetadataValue(t *testing.T) {
+	t.Parallel()
+
+	var pathErr *os.PathError
+
+	data, err := plainFormatter().Format(&Log{
+		Level:    hqgologgerlevels.LevelInfo,
+		Message:  "m",
+		Metadata: map[string]any{"cause": error(pathErr)},
+	})
+
+	require.NoError(t, err)
+
+	assert.Equal(t, "[INF] m cause=<nil>", string(data))
 }
 
 func TestFormatTrimsSingleTrailingNewline(t *testing.T) {

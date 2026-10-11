@@ -83,13 +83,13 @@ Severity is ordered by value, and **lower means more severe**:
 | Level | Value | Meaning |
 | --- | --- | --- |
 | `LevelFatal` | 0 | Unrecoverable failure; the logger exits the process after writing. |
-| `LevelSilent` | 1 | As a threshold, suppresses output; as the level used by `Print`, routes to stdout. |
+| `LevelSilent` | 1 | As a threshold, keeps only `Fatal` and `Print` output; as the level used by `Print`, routes to stdout. |
 | `LevelError` | 2 | Errors that need attention but don't halt the program. |
 | `LevelInfo` | 3 | Normal-operation messages. |
 | `LevelWarn` | 4 | Potential issues worth investigating. |
 | `LevelDebug` | 5 | Verbose detail for development. |
 
-A logger emits an event only when it is at least as severe as the threshold — that is, when `event level <= configured level`. Setting the threshold to `LevelDebug` lets everything through; setting it to `LevelSilent` drops all but `Print`.
+A logger emits an event only when it is at least as severe as the threshold — that is, when `event level <= configured level`. Setting the threshold to `LevelDebug` lets everything through; setting it to `LevelSilent` drops everything except `Fatal` and `Print` (`Fatal` always passes, at any threshold).
 
 ```go
 import hqgologgerlevels "github.com/hueristiq/hq-lib-logger-go/levels"

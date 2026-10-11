@@ -105,7 +105,8 @@ func (c *Console) Write(data []byte, level hqgologgerlevels.Level) (err error) {
 // Close closes the stdout and stderr streams if they are not os.Stdout or os.Stderr
 // and implement the io.Closer interface. This ensures proper resource cleanup for
 // custom output streams (e.g., file handles or network connections injected via
-// ConsoleWriterConfiguration). The method is thread-safe, using a mutex to prevent
+// ConsoleWriterConfiguration). When both streams are the same custom stream, it is
+// closed exactly once. The method is thread-safe, using a mutex to prevent
 // concurrent access. Both streams are attempted even if one fails, and the last
 // non-nil error is returned. If the streams are os.Stdout or os.Stderr, they are
 // not closed, as these are managed by the operating system.
@@ -123,7 +124,7 @@ func (c *Console) Close() (err error) {
 		}
 	}
 
-	if c.stderr != os.Stderr {
+	if c.stderr != os.Stderr && c.stderr != c.stdout {
 		if closer, ok := c.stderr.(io.Closer); ok {
 			if cerr := closer.Close(); cerr != nil {
 				err = cerr

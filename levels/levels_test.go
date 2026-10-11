@@ -166,6 +166,40 @@ func TestLevelUnmarshalTextEmpty(t *testing.T) {
 	require.ErrorIs(t, err, ErrUnknownLevel)
 }
 
+func TestLevelUnmarshalTextUnknownSentinel(t *testing.T) {
+	t.Parallel()
+
+	var l Level
+
+	require.NoError(t, l.UnmarshalText([]byte("unknown")))
+	assert.False(t, l.IsValid())
+	assert.Equal(t, "unknown", l.String())
+
+	text, err := l.MarshalText()
+	require.NoError(t, err)
+	assert.Equal(t, "unknown", string(text))
+}
+
+func TestLevelInvalidRoundTripThroughUnknown(t *testing.T) {
+	t.Parallel()
+
+	for _, level := range []Level{Level(-1), Level(99)} {
+		text, err := level.MarshalText()
+		require.NoError(t, err)
+		assert.Equal(t, "unknown", string(text))
+
+		var got Level
+
+		require.NoError(t, got.UnmarshalText(text))
+		assert.False(t, got.IsValid())
+		assert.Equal(t, "unknown", got.String())
+
+		again, err := got.MarshalText()
+		require.NoError(t, err)
+		assert.Equal(t, string(text), string(again))
+	}
+}
+
 func TestLevelUnmarshalTextErrorLeavesLevelUnchanged(t *testing.T) {
 	t.Parallel()
 

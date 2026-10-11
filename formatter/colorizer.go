@@ -37,7 +37,7 @@ func (c *NoOpColorizer) Colorize(text string, level hqgologgerlevels.Level) (col
 // several goroutines at once.
 //
 // Methods:
-//   - Colorize(text string, level levels.Level) (colorized string): Takes a text
+//   - Colorize(text string, level hqgologgerlevels.Level) (colorized string): Takes a text
 //     string and a log level, returning the text with applied color formatting
 //     specific to the provided level. The implementation determines how colors
 //     are applied, such as using ANSI escape codes for terminal output or

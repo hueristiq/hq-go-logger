@@ -30,7 +30,10 @@ func (l Level) MarshalText() (bytes []byte, err error) {
 // UnmarshalText implements the encoding.TextUnmarshaler interface to parse a
 // text representation (e.g., from JSON or YAML) into a Level. The input must
 // match a known level name exactly — the comparison is case-sensitive and no
-// surrounding whitespace is trimmed, so "WARN" or "warn " fail to parse.
+// surrounding whitespace is trimmed, so "WARN" or "warn " fail to parse. The
+// special name "unknown" — the string [Level.MarshalText] emits for an invalid
+// Level — is also accepted and produces an invalid Level whose String is
+// "unknown", so the text round-trip stays stable even for invalid levels.
 //
 // Parameters:
 //   - text ([]byte): The text representation of the Level to parse.
@@ -45,13 +48,17 @@ func (l *Level) UnmarshalText(text []byte) (err error) {
 		if v == str {
 			*l = Level(i)
 
-			return
+			return nil
 		}
 	}
 
-	err = fmt.Errorf("%w (%s)", ErrUnknownLevel, str)
+	if str == "unknown" {
+		*l = Level(-1)
 
-	return
+		return nil
+	}
+
+	return fmt.Errorf("%w (%s)", ErrUnknownLevel, str)
 }
 
 // Int returns the integer value of the Level, allowing direct access to its
